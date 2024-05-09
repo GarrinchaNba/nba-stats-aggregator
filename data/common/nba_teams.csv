@@ -1,0 +1,37 @@
+id,name,prefix_1,prefix_2,prefix_long,first_year,last_year,generated
+1,Atlanta Hawks,atl,atl,atlanta-hawks,,,0
+2,Boston Celtics,bos,bos,boston-celtics,,,0
+3,New Jersey Nets,njn,njn,new-jersey-nets,,2012,0
+3,Brooklyn Nets,brk,bkn,brooklyn-nets,2013,,0
+4,Charlotte Bobcats,cha,cha,charlotte-bobcats,2005,2014,0
+4,Charlotte Hornets,cho,cha,charlotte-hornets,2015,,0
+5,Chicago Bulls,chi,chi,chicago-bulls,,,0
+6,Cleveland Cavaliers,cle,cle,cleveland-cavaliers,,,0
+7,Dallas Mavericks,dal,dal,dallas-mavericks,,,0
+8,Denver Nuggets,den,den,denver-nuggets,,,0
+9,Detroit Pistons,det,det,detroit-pistons,,,0
+10,Golden State Warriors,gsw,gsw,golden-state-warriors,,,0
+11,Houston Rockets,hou,hou,houston-rockets,,,0
+12,Indiana Pacers,ind,ind,indiana-pacers,,,0
+13,Los Angeles Clippers,lac,lac,los-angeles-clippers,,,0
+14,Los Angeles Lakers,lal,lal,los-angeles-lakers,,,0
+15,Memphis Grizzlies,mem,mem,memphis-grizzlies,,,0
+16,Miami Heat,mia,mia,miami-heat,,,0
+17,Milwaukee Bucks,mil,mil,milwaukee-bucks,,,0
+18,Minnesota Timberwolves,min,min,minnesota-timberwolves,,,0
+19,New Orleans Hornets,noh,noh,new-orleans-hornets,2004,2005,0
+19,New Orleans/Oklahoma City Hornets,nok,noh,new-orleans-hornets,2006,2007,0
+19,New Orleans Hornets,noh,noh,new-orleans-hornets,2008,2013,0
+19,New Orleans Pelicans,nop,nop,new-orleans-pelicans,2014,,0
+20,New York Knicks,nyk,nyk,new-york-knicks,,,0
+21,Seattle SuperSonics,sea,sea,seattle-supersonics,,2008,0
+21,Oklahoma City Thunder,okc,okc,oklahoma-city-thunder,2009,,0
+22,Orlando Magic,orl,orl,orlando-magic,,,0
+23,Philadelphia 76ers,phi,phi,philadelphia-76ers,,,0
+24,Phoenix Suns,pho,phx,phoenix-suns,,,0
+25,Portland Trail Blazers,por,por,portland-trail-blazers,,,0
+26,Sacramento Kings,sac,sac,sacramento-kings,,,0
+27,San Antonio Spurs,sas,sas,san-antonio-spurs,,,0
+28,Toronto Raptors,tor,tor,toronto-raptors,,,0
+29,Utah Jazz,uta,uta,utah-jazz,,,0
+30,Washington Wizards,was,was,washington-wizards,,,0

@@ -1,0 +1,4 @@
+ctg:
+    sessionId: some_session_id
+    cookieValue: some_cookie_value
+is_stubbed: true

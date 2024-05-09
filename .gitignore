@@ -1,0 +1,19 @@
+#IDE
+.idea
+
+#data
+!/data/
+/data/**
+!/data/common
+!/data/common/**
+!/data/stub
+!/data/stub/**
+src/top100/geckodriver.log
+src/bbindex/geckodriver.log
+venv/
+
+# python
+__pycache__
+
+/config/local.yaml
+scratch*.html
