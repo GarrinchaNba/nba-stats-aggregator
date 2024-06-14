@@ -1,5 +1,5 @@
 attrs==23.2.0
-beautifulsoup4==4.12.2
+beautifulsoup4==4.12.3
 certifi==2024.2.2
 charset-normalizer==3.3.2
 h11==0.14.0
@@ -30,3 +30,5 @@ tzdata==2024.1
 urllib3==2.2.1
 webdriver-manager==4.0.1
 wsproto==1.2.0
+lxml==5.2.2
+rich==13.7.1

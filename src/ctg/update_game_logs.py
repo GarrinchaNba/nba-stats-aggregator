@@ -36,7 +36,7 @@ with open(NBA_TEAMS_FILE, mode='r', newline='') as csvfile:
         soup_ranking = get_soup(url_rankings)
         # soup_ranking = BeautifulSoup(open("./scratch_bbref.html", encoding="utf8"), "html.parser")
         ranking_html: Tag = get_content_from_soup(soup_ranking, 'expanded_standings', 'table', 'id')
-        ranking_data: dict[str, str] = get_rankings(ranking_html, teams)
+        ranking_data: dict[str, str] = get_rankings(ranking_html, teams, 'prefix_2')
 
         for team_iterator, team in enumerate(teams):
             if (not does_franchise_exists_for_season(team, year)) or team['generated'] == '1':

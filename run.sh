@@ -19,6 +19,7 @@ if [ $# = 0 ] || [ $1 = 'help' ]; then
     echo ' - 538_top100'
     echo ' - bbref_team_calendar'
     echo ' - bbref_players'
+    echo ' - bbref_game_logs'
     echo ' - ctg_game_logs'
     echo ' - ctg_transition'
     echo ' - sportpress_team_calendar'
@@ -43,6 +44,8 @@ elif [ $1 = 'sportpress_team_games' ]; then
     $PYTHON3 ${ROOT_DIR}/src/sportpress/team_games.py "${@:2}"
 elif [ $1 = 'bbref_players' ]; then
     $PYTHON3 ${ROOT_DIR}/src/bbref/players.py "${@:2}"
+elif [ $1 = 'bbref_game_logs' ]; then
+    $PYTHON3 ${ROOT_DIR}/src/bbref/game_logs.py "${@:2}"
 elif [ $1 = 'bbref_team_calendar' ]; then
     $PYTHON3 ${ROOT_DIR}/src/bbref/team_calendar.py "${@:2}"
 elif [ $1 = 'ctg_game_logs' ]; then

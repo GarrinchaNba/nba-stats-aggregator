@@ -27,9 +27,9 @@ def generate_game_logs(min_year: str, max_year: str, environment: Environment):
                 url_rankings = BASKETBALL_REFERENCE_URL + '/leagues/NBA_' + str(year) + '_standings.html'
                 soup_ranking = get_soup(url_rankings)
             else:
-                soup_ranking = get_stub_soup('stub_bbref_game_logs')
+                soup_ranking = get_stub_soup('stub_bbref_standings')
             ranking_html: Tag = get_content_from_soup(soup_ranking, 'expanded_standings', 'table', 'id')
-            ranking_data: dict[str, str] = get_rankings(ranking_html, teams)
+            ranking_data: dict[str, str] = get_rankings(ranking_html, teams, 'prefix_2')
 
             for team_iterator, team in enumerate(teams):
                 if (not does_franchise_exists_for_season(team, year)) or team['generated'] == '1':

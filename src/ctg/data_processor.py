@@ -48,9 +48,7 @@ def get_rows(table: Tag, columns: list[str], teams: dict[str, str]) -> list[dict
     opp_rank = 'Opp rank'
     game_type = 'Game type'
     rows = table.select('tbody > tr')
-    columns.append(opp_rank)
-    columns.append(win_pct)
-    columns.append(game_type)
+    columns += [opp_rank, win_pct, game_type]
     for row in rows:
         row_data = {game_type: "playoffs" if (
             row.has_attr("class") and "playoffs_row" in row.attrs['class']
