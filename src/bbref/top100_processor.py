@@ -8,18 +8,21 @@ from typing import Any
 import pandas as pd
 import requests
 from bs4 import Tag, BeautifulSoup
+from dateutil.relativedelta import relativedelta
 
 from config.config import Environment, get_is_stubbed
 from src.common.constant import BASKETLAB_FILE_BASE, BASKETLAB_COMPLETE_FILE_BASE, TOP100_DATA_DIRECTORY, \
     BASKETBALL_REFERENCE_URL
-from src.common.data_collector import get_content_from_soup, get_soup
+from src.common.data_collector import get_content_from_soup, get_soup, get_url_response, get_soup_from_response
 from src.common.data_collector import get_table_body
 from src.common.file_processor import generate_csv_from_dataframe, build_top100_csv_file_name, \
     generate_csv_from_list_dicts
 from src.common.utils import remove_accents, wait_random_duration, Duration, matrix_to_list
 
+BATCH_SIZE = 10
+
 MAX_TRIES_PLAYER_SEARCH = 7
-MAX_BIRTHDATE = datetime(1975, 1, 1)
+MAX_BIRTHDATE = datetime.now() - relativedelta(years=45)
 PLAYER_NAME_FIX = {
     'capela': 'ca',
     'ntilikina': 'la'
@@ -39,14 +42,10 @@ def generate_top100(min_year: str, max_year: str, environment: Environment):
     all_columns: dict[str, list[str]] = {}
     player_seasons_data = []
 
-    if os.path.exists(output_file):
-        with open(output_file, newline='') as existing_seasons_file:
-            existing_rows_top100: list[dict[str, str]] = list(csv.DictReader(existing_seasons_file, delimiter=';'))
-            existing_seasons = get_seasons_by_player_id_from_file(existing_rows_top100)
-
-    with open(input_file, newline='') as csvfile:
+    with (open(input_file, newline='') as csvfile):
         reader: list[dict[str, str]] = list(csv.DictReader(csvfile, delimiter=';'))
         exported_players: list[dict[str, str]] = []
+        count = 1
         for player in reader:
             last_name = player['last_name'].lower()
             first_name = player['first_name'].lower()
@@ -83,7 +82,8 @@ def generate_top100(min_year: str, max_year: str, environment: Environment):
                         playoff_columns = ['playoffs_' + column for column in all_columns[table_id]]
                         all_columns['playoffs_' + table_id] = playoff_columns
                     playoffs_table = get_content_from_soup(soup, 'div_playoffs_' + table_id)
-                    playoffs_data = build_players_data(playoffs_table, all_columns['playoffs_' + table_id], 'playoffs_' + table_id, year)
+                    playoffs_data = build_players_data(playoffs_table, all_columns['playoffs_' + table_id],
+                                                       'playoffs_' + table_id, year)
                     player_season_data += playoffs_data
                 player_seasons_data.append(base_data + player_season_data)
 
@@ -96,10 +96,28 @@ def generate_top100(min_year: str, max_year: str, environment: Environment):
                 'exported': 'Y'
             }
             exported_players.append(player)
-            wait_random_duration(Duration.SHORT)
+            if count % BATCH_SIZE == 0:
+                player_seasons_data_batch = player_seasons_data[-BATCH_SIZE:]
+                columns_dataframe = OUTPUT_COLUMNS + matrix_to_list(list(all_columns.values()))
+                player_seasons_dataframe = pd.DataFrame(player_seasons_data_batch, columns=columns_dataframe)
+                if count == BATCH_SIZE and not os.path.exists(output_file):
+                    mode = 'w'
+                else:
+                    mode = 'a'
+                generate_csv_from_dataframe(player_seasons_dataframe, TOP100_DATA_DIRECTORY, output_file, mode, ';',
+                                            False)
+                # generate_csv_from_list_dicts(exported_players, TOP100_DATA_DIRECTORY, input_file, mode, ';', True)
+            count += 1
+            wait_random_duration(Duration.MEDIUM)
+        LAST_BATCH_SIZE = (count - 1) % BATCH_SIZE
+        player_seasons_data_batch = player_seasons_data[-LAST_BATCH_SIZE:]
         columns_dataframe = OUTPUT_COLUMNS + matrix_to_list(list(all_columns.values()))
-        player_seasons_dataframe = pd.DataFrame(player_seasons_data, columns=columns_dataframe)
-        generate_csv_from_dataframe(player_seasons_dataframe, TOP100_DATA_DIRECTORY, output_file, 'a')
+        player_seasons_dataframe = pd.DataFrame(player_seasons_data_batch, columns=columns_dataframe)
+        if count < BATCH_SIZE and not os.path.exists(output_file):
+            mode = 'w'
+        else:
+            mode = 'a'
+        generate_csv_from_dataframe(player_seasons_dataframe, TOP100_DATA_DIRECTORY, output_file, mode)
         generate_csv_from_list_dicts(exported_players, TOP100_DATA_DIRECTORY, input_file, 'w')
 
         if not os.path.exists(output_file):
@@ -115,19 +133,24 @@ def search_player(first_name, last_name) -> tuple[dict[str, str | Any], Beautifu
         player_id = build_player_id(last_name, first_name, count)
         url = base_url + '/' + last_name[:1] + '/' + player_id + '.html'
         if url_ok(url):
-            soup = get_soup(url)
-            info = get_content_from_soup(soup, 'info', 'div')
-            full_name = remove_accents(info.find('h1').findChild('span').text)
-            birthdate_raw = info.find('span', {'id': 'necro-birth'}).attrs['data-birth']
-            birthdate = datetime.strptime(birthdate_raw, '%Y-%m-%d')
-            if (full_name == first_name + ' ' + last_name) and birthdate > MAX_BIRTHDATE:
-                player_data = {
-                    'player_id': player_id
-                }
-                print("#############################################")
-                print("##### Player found : " + full_name)
-                print("#############################################")
-                return player_data, soup
+            response = get_url_response(url)
+            soup_info = get_soup_from_response(response, True)
+            info = get_content_from_soup(soup_info, 'info', 'div')
+            soup = get_soup_from_response(response, False)
+            full_name_raw = info.find('h1').findChild('span').text
+            full_name = remove_accents(full_name_raw, 'NFKD')
+            birthdate_raw = info.find('span', {'id': 'necro-birth'})
+            if birthdate_raw is not None:
+                birthdate_raw = birthdate_raw.attrs['data-birth']
+                birthdate = datetime.strptime(birthdate_raw, '%Y-%m-%d')
+                if (full_name == first_name + ' ' + last_name) and birthdate > MAX_BIRTHDATE:
+                    player_data = {
+                        'player_id': player_id
+                    }
+                    print("#############################################")
+                    print("##### Player found : " + full_name)
+                    print("#############################################")
+                    return player_data, soup
             print("Not the expected player : " + full_name)
         count += 1
         wait_random_duration()
