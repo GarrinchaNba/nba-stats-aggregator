@@ -48,16 +48,15 @@ def get_shortened_season_name(season: str, separator='_') -> str:
     return years[0] + '-' + years[1][2:]
 
 
-def get_year_from_season(season: str) -> str:
-    years = season.split('_')
+def get_year_from_season(season: str, separator='_') -> str:
+    years = season.split(separator)
     if len(years) < 2:
         raise Exception("Invalid season : " + season)
     return years[1]
 
-
-def remove_accents(data):
+def remove_accents(data: str, normalization_code = 'NFKD'):
     return ''.join(
-        x for x in unicodedata.normalize('NFKD', data) if x in string.ascii_letters or x == ' ' or x == '-').lower()
+        x for x in unicodedata.normalize(normalization_code, data) if x in string.ascii_letters or x == ' ' or x == '-').lower()
 
 
 def update_countries(value: str):

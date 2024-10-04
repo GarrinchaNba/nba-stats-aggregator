@@ -7,6 +7,7 @@ CLEANING_THE_GLASS_URL = 'https://cleaningtheglass.com'
 NBA_COM_IMAGES_URL = 'https://cdn.nba.com'
 NBA_COM_URL = 'https://www.nba.com'
 BASKETBALL_INDEX_URL = 'https://www.bball-index.com'
+SPOTRAC_URL = 'https://www.spotrac.com'
 
 # directories
 ROOT_DIRECTORY = str(Path(__file__).parent.parent.parent.absolute())  # This is your Project Root
@@ -23,6 +24,7 @@ CLEANING_THE_GLASS_DATA_DIRECTORY = os.path.join(DATA_DIRECTORY, "ctg")
 FIVETHIRTYEIGHT_DATA_DIRECTORY = os.path.join(DATA_DIRECTORY, "538")
 BBINDEX_DATA_DIRECTORY = os.path.join(DATA_DIRECTORY, "bbindex")
 EXPORT_DATA_DIRECTORY = os.path.join(DATA_DIRECTORY, "export")
+SPOTRAC_DATA_DIRECTORY = os.path.join(DATA_DIRECTORY, "spotrac")
 
 # files
 TOP100_FILE = 'top100_'

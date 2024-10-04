@@ -60,10 +60,11 @@ def copy_file(file_directory: str, new_file_directory: str) -> None:
 
 
 def generate_csv_from_dataframe(data: DataFrame, data_directory: str, file_name: str, mode='w',
-                                delimiter=';') -> None:
+                                delimiter=';', with_backup=True) -> None:
     create_directory_if_not_exists(data_directory)
     file = os.path.join(data_directory, file_name)
-    backup_file(file)
+    if with_backup:
+        backup_file(file)
     if os.path.exists(file) and mode == 'a':
         data.to_csv(file, mode=mode, index=False, header=False, sep=delimiter)
     else:
@@ -72,13 +73,15 @@ def generate_csv_from_dataframe(data: DataFrame, data_directory: str, file_name:
 
 
 def generate_csv_from_list_dicts(data: list[dict[str, str]], directory: str, file_name: str, mode: str = 'a',
-                                 delimiter: str = ';') -> None:
+                                 delimiter: str = ';', with_backup=True) -> None:
     create_directory_if_not_exists(directory)
     file = os.path.join(directory, file_name)
-    backup_file(file)
+    if with_backup:
+        backup_file(file)
     with open(file_name, mode, newline='') as output_file:
         dict_writer = csv.DictWriter(output_file, data[0].keys(), delimiter=delimiter)
-        dict_writer.writeheader()
+        if mode == 'w':
+            dict_writer.writeheader()
         dict_writer.writerows(data)
     print("File generated : " + file)
 
