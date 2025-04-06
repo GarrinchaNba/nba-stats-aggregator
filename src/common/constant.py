@@ -6,6 +6,7 @@ BASKETBALL_REFERENCE_URL = 'https://www.basketball-reference.com'
 CLEANING_THE_GLASS_URL = 'https://cleaningtheglass.com'
 NBA_COM_IMAGES_URL = 'https://cdn.nba.com'
 NBA_COM_URL = 'https://www.nba.com'
+NBA_COM_CORE_API = 'https://core-api.nba.com'
 BASKETBALL_INDEX_URL = 'https://www.bball-index.com'
 SPOTRAC_URL = 'https://www.spotrac.com'
 
@@ -33,6 +34,7 @@ BASKETLAB_FILE_BASE = '_basketlab'
 BASKETLAB_COMPLETE_FILE_BASE = '_basketlab_complete'
 BASKETLAB_WITH_RAPTORS_FILE = '_basketlab_with_raptors'
 BASKETLAB_WITH_BBINDEX_FILE = '_basketlab_with_bbindex'
+BASKETLAB_WITH_SPOTRAC_FILE = '_basketlab_with_spotrac'
 NBA_TEAMS_FILE = os.path.join(COMMON_DATA_DIRECTORY, 'nba_teams.csv')
 NBA_ARENA_FILE = os.path.join(COMMON_DATA_DIRECTORY, 'nba_arena_list.csv')
 COUNTRIES_FILE = os.path.join(COMMON_DATA_DIRECTORY, 'countries.csv')

@@ -13,11 +13,14 @@ def get_columns(table: Tag) -> list[str]:
     return columns
 
 
-def sanitize_text(text):
-    return re.sub(r'(\n|\([^()]*\))', ' ', text).strip()
+def sanitize_text(text: str, raw = True):
+    value = re.sub(r'(\n|\([^()]*\))', ' ', text).strip()
+    if raw is False:
+        value = re.sub(r'([$,%])', '', text).strip()
+    return value
 
 
-def get_rows(table: Tag, columns: list[str]) -> list[dict[str, str]]:
+def get_rows(table: Tag, columns: list[str], raw = True) -> list[dict[str, str]]:
     data = []
     rows = table.select('tbody > tr')
     for row in rows:
@@ -27,7 +30,7 @@ def get_rows(table: Tag, columns: list[str]) -> list[dict[str, str]]:
         for index, cell in enumerate(cells):
             if count == 0:
                 cell = cell.find('a')
-            row_data[columns[index]] = str(sanitize_text(cell.text))
+            row_data[columns[index]] = str(sanitize_text(cell.text, raw))
             count += 1
         data.append(row_data)
     return data
