@@ -72,7 +72,7 @@ def generate_top100(min_year: str, max_year: str, environment: Environment):
                 for table_id in LIST_TABLE_IDS:
                     regular_season_table = get_content_from_soup(soup, 'div_' + table_id)
                     if table_id not in all_columns:
-                        regular_columns = get_columns(regular_season_table)
+                        regular_columns = get_columns(regular_season_table, table_id)
                         all_columns[table_id] = regular_columns
                     regular_data = build_players_data(regular_season_table, all_columns[table_id], table_id, year)
                     player_season_data += regular_data
@@ -106,7 +106,6 @@ def generate_top100(min_year: str, max_year: str, environment: Environment):
                     mode = 'a'
                 generate_csv_from_dataframe(player_seasons_dataframe, TOP100_DATA_DIRECTORY, output_file, mode, ';',
                                             False)
-                # generate_csv_from_list_dicts(exported_players, TOP100_DATA_DIRECTORY, input_file, mode, ';', True)
             count += 1
             wait_random_duration(Duration.MEDIUM)
         LAST_BATCH_SIZE = (count - 1) % BATCH_SIZE
@@ -165,7 +164,7 @@ def build_players_data(table: Tag, columns: list[str], table_id: str, year: int)
     for column in columns:
         value = '0'
         if row:
-            cell = row.find("td", {'data-stat': column})
+            cell = row.find("td", {'data-stat': column.replace(table_id + '_', '')})
             if cell:
                 value = cell.text.strip()
         data_season.append(value)
@@ -187,15 +186,15 @@ def get_years(soup: BeautifulSoup, min_year: str, max_year: str) -> list[int]:
     return years
 
 
-def get_columns(table: Tag) -> list[str]:
+def get_columns(table: Tag, table_id= '') -> list[str]:
     columns = []
     row = table.find('tr', {'class': 'full_table'})
     cells = row.findAll("td")
     for cell in cells:
         data_stat = cell.attrs['data-stat']
-        if data_stat in ['DUMMY', 'trp_dbl']:
+        if data_stat in ['DUMMY', 'trp_dbl', '']:
             continue
-        columns.append(data_stat)
+        columns.append(table_id + '_' + data_stat)
     return columns
 
 
