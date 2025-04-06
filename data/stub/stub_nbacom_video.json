@@ -1,0 +1,49 @@
+{
+    "resource": "videoevents",
+    "parameters": {
+        "GameID": "0022200114",
+        "GameEventID": 4
+    },
+    "resultSets": {
+        "Meta": {
+            "videoUrls": [
+                {
+                    "uuid": "0da509a4-f8f5-e007-65a2-d97501b57d0e",
+                    "sdur": 9800,
+                    "surl": "https://videos.nba.com/nba/pbp/media/2022/11/02/0022200114/4/0da509a4-f8f5-e007-65a2-d97501b57d0e_320x180.mp4",
+                    "sth": "https://videos.nba.com/nba/pbp/media/2022/11/02/0022200114/4/0da509a4-f8f5-e007-65a2-d97501b57d0e_320x180.jpg",
+                    "mdur": 9800,
+                    "murl": "https://videos.nba.com/nba/pbp/media/2022/11/02/0022200114/4/0da509a4-f8f5-e007-65a2-d97501b57d0e_960x540.mp4",
+                    "mth": "https://videos.nba.com/nba/pbp/media/2022/11/02/0022200114/4/0da509a4-f8f5-e007-65a2-d97501b57d0e_960x540.jpg",
+                    "ldur": 9800,
+                    "lurl": "https://videos.nba.com/nba/pbp/media/2022/11/02/0022200114/4/0da509a4-f8f5-e007-65a2-d97501b57d0e_1280x720.mp4",
+                    "lth": "https://videos.nba.com/nba/pbp/media/2022/11/02/0022200114/4/0da509a4-f8f5-e007-65a2-d97501b57d0e_1280x720.jpg",
+                    "vtt": "https://videos.nba.com/nba/pbp/media/2022/11/02/0022200114/4/0da509a4-f8f5-e007-65a2-d97501b57d0e.vtt",
+                    "scc": "https://videos.nba.com/nba/pbp/media/2022/11/02/0022200114/4/0da509a4-f8f5-e007-65a2-d97501b57d0e.scc",
+                    "srt": "https://videos.nba.com/nba/pbp/media/2022/11/02/0022200114/4/0da509a4-f8f5-e007-65a2-d97501b57d0e.srt"
+                }
+            ]
+        },
+        "playlist": [
+            {
+                "gi": "0022200114",
+                "ei": 4,
+                "y": 2022,
+                "m": "11",
+                "d": "02",
+                "gc": "2022-11-02/TORSAS",
+                "p": 1,
+                "dsc": "Jump Ball Poeltl vs. Koloko: Tip to Sochan",
+                "ha": "SAS",
+                "hid": 1610612759,
+                "va": "TOR",
+                "vid": 1610612761,
+                "hpb": 0,
+                "hpa": 0,
+                "vpb": 0,
+                "vpa": 0,
+                "pta": 0
+            }
+        ]
+    }
+}

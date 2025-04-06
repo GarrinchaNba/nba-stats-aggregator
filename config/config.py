@@ -25,6 +25,13 @@ def get_ctg_identifiers(environment=Environment.LOCAL) -> dict[str, str]:
     return config['ctg']
 
 
+def get_nbacom_identifiers(environment=Environment.LOCAL) -> dict[str, str]:
+    config = get_config(environment)
+    if 'nbacom' not in config:
+        raise Exception("Missing nbacom configuration")
+    return config['nbacom']
+
+
 def get_is_stubbed(environment=Environment.LOCAL) -> bool:
     config = get_config(environment)
     return 'is_stubbed' in config and config['is_stubbed'] == True

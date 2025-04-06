@@ -17,7 +17,7 @@ from src.sportpress.team_calendar_processor import generate_sportpress_calendar_
 COLUMNS_MAPPING = {'player': 'Players', 'mp': 'MP', 'pts': 'PTS', 'ast': 'AST', 'stl': 'STL',
                    'blk': 'BLK', 'fg': 'FGM', 'fga': 'FGA', 'fg_pct': 'FG%', 'fg3': '3PM', 'fg3a': '3PA',
                    'fg3_pct': '3P%', 'ft': 'FTM', 'fta': 'FTA', 'ft_pct': 'FT%', 'orb': 'OREB',
-                   'drb': 'DREB', 'tov': 'TOV', 'pf': 'PF', 'plus_minus': '+/-'}
+                   'drb': 'DREB', 'trb': 'REB', 'tov': 'TOV', 'pf': 'PF', 'plus_minus': '+/-'}
 OUTPUT_COLUMNS = ['Players', 'Teams', 'Results', 'Outcome', 'Date', 'Time', 'Venue', 'MP', 'FGM', 'FGA', 'FG%', '3PM',
                   '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB', 'DREB', 'REB', 'AST', 'STL', 'BLK', 'TOV', 'PF', 'PTS',
                   '+/-']
@@ -25,6 +25,9 @@ OUTPUT_COLUMNS_ORDERED = ['Date', 'Time', 'Venue', 'Teams', 'Results', 'Outcome'
                           'AST', 'STL', 'BLK', 'FGM', 'FGA', 'FG%', '3PM', '3PA', '3P%', 'FTM', 'FTA', 'FT%', 'OREB',
                           'DREB', 'TOV', 'PF', '+/-']
 
+FIX_TEAM_MAPPING = {
+    'Los Angeles Clippers': 'LA Clippers',
+}
 
 def generate_games(team_prefix: str, year: str, environment=Environment.LOCAL):
     print('Generate games for team [' + team_prefix + '] from year [' + year + ']')
@@ -66,7 +69,7 @@ def generate_games(team_prefix: str, year: str, environment=Environment.LOCAL):
                 if nb_games % 20 == 0:
                     output_file = os.path.join(
                         BBREF_DATA_DIRECTORY,
-                        team_prefix + '_games_' + season + 'sportpress_part' + str(part_number) + '.csv'
+                        team_prefix + '_games_' + season + '_sportpress_part' + str(part_number) + '.csv'
                     )
                     dataframe = pd.DataFrame(games_data, columns=OUTPUT_COLUMNS)
                     dataframe_ordered = dataframe[OUTPUT_COLUMNS_ORDERED]
@@ -78,7 +81,7 @@ def generate_games(team_prefix: str, year: str, environment=Environment.LOCAL):
                 output_rows.append(input_row)
             output_file = os.path.join(
                 BBREF_DATA_DIRECTORY,
-                team_prefix + '_games_' + season + 'sportpress_part' + str(part_number) + '.csv'
+                team_prefix + '_games_' + season + '_sportpress_part' + str(part_number) + '.csv'
             )
             if not games_data:
                 print("No game generated")
@@ -100,7 +103,8 @@ def find_current_part_number(season: str, team: str) -> int:
 
 def get_game_data(input_row: dict[str, str], teams_mapping: dict[str, str], is_stubbed=False) -> list[list[str]]:
     # score
-    home_team_prefix = teams_mapping[input_row['Home']].upper()
+    home_team = get_team(input_row)
+    home_team_prefix = teams_mapping[home_team].upper()
     date = input_row['Date'].replace('/', '')
     if not is_stubbed:
         url = BASKETBALL_REFERENCE_URL + '/boxscores/' + date + '0' + home_team_prefix + '.html'
@@ -124,10 +128,17 @@ def get_game_data(input_row: dict[str, str], teams_mapping: dict[str, str], is_s
     return boxscore_home + boxscore_away
 
 
+def get_team(input_row):
+    home_team = input_row['Home']
+    if home_team in FIX_TEAM_MAPPING:
+        home_team = FIX_TEAM_MAPPING[home_team]
+    return home_team
+
+
 def build_boxscore(boxscore_table: Tag, results_outcome: dict[str, str],
                    calendar: dict[str, str], is_home: bool) -> list[list[str]]:
     rows = boxscore_table.select('tr')
-    boxscore_columns = {'REB': 'REB'}
+    boxscore_columns = {}
     all_data = []
     for index, row in enumerate(rows):
         first_cell = row.find('th', {"scope": "row"})
@@ -146,7 +157,7 @@ def build_boxscore(boxscore_table: Tag, results_outcome: dict[str, str],
             for _ in boxscore_columns:
                 data.append('')
             continue
-        total_rebounds = 0
+        # total_rebounds = 0
         for cell in cells:
             column = cell.attrs['data-stat']
             if column not in COLUMNS_MAPPING:
@@ -156,9 +167,9 @@ def build_boxscore(boxscore_table: Tag, results_outcome: dict[str, str],
                 boxscore_columns[column] = output_column
             value = full_strip(cell.text)
             data.append(value)
-            if output_column in ['OREB', 'DREB']:
-                total_rebounds += int(value)
-        data.append(str(total_rebounds))  # reb
+        #     if output_column in ['OREB', 'DREB']:
+        #         total_rebounds += int(value)
+        # data.append(str(total_rebounds))  # reb
         all_data.append(data)
     return all_data
 
