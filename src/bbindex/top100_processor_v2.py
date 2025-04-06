@@ -11,11 +11,11 @@ from webdriver_manager.firefox import GeckoDriverManager
 
 from config.config import Environment, get_is_stubbed
 from src.common.constant import BASKETLAB_COMPLETE_FILE_BASE, BASKETLAB_WITH_RAPTORS_FILE, BASKETLAB_WITH_BBINDEX_FILE, \
-    BBINDEX_DATA_DIRECTORY, BASKETBALL_INDEX_URL
+    TOP100_DATA_DIRECTORY
 from src.common.data_collector import get_content_from_soup, get_soup_from_html_content
 from src.common.file_processor import generate_csv_from_list_dicts, build_top100_csv_file_name
 from src.common.stub import get_stub_soup, get_stub_file
-from src.common.utils import get_all_seasons_between, get_shortened_season_name, get_year_from_season, \
+from src.common.utils import get_all_seasons_between, get_year_from_season, \
     wait_random_duration, Duration, get_current_season_year, remove_accents
 
 
@@ -31,7 +31,8 @@ def generate_top100_v2(min_year: str, max_year: str, environment: Environment) -
     output_file: str = build_top100_csv_file_name(BASKETLAB_WITH_BBINDEX_FILE, min_year, max_year)
     COLUMNS_BBINDEX = ['Offensive Archetype', 'Defensive Role', 'LEBRON WAR', 'LEBRON', 'O-LEBRON', 'D-LEBRON']
     FIXED_PLAYERS: dict[str, str] = {
-        "robert williams": "robert williams iii"
+        "robert williams": "robert williams iii",
+        "jakob poeltl": "jakob poltl"
     }
     soup_by_season: dict[str, BeautifulSoup] = {}
 
@@ -49,16 +50,17 @@ def generate_top100_v2(min_year: str, max_year: str, environment: Environment) -
     for season in seasons:
         print("Filter for season [" + season + "]")
         try:
-            WebDriverWait(driver, 10, 2).until(
+            WebDriverWait(driver, 20, 3).until(
                 expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#Years-label"))
             )
         except RuntimeError:
             driver.quit()
+            return
+        season_year = int(get_year_from_season(season, '-'))
+
         slider = driver.find_element(By.XPATH,
                                      "//label[@id='Years-label']/following-sibling::span//span[@class='irs-bar']")
         move = webdriver.ActionChains(driver)
-        season_year = int(get_year_from_season(season, '-'))
-
         knob_left = driver.find_element(By.XPATH,
                                         "//label[@id='Years-label']/following-sibling::span/span[contains(@class, 'irs-handle from')]")
         initial_year = get_current_season_year() - 11
@@ -77,9 +79,9 @@ def generate_top100_v2(min_year: str, max_year: str, environment: Environment) -
             )
         except RuntimeError:
             driver.quit()
+            return
         element = driver.find_element(By.CSS_SELECTOR, "#make_table")
         element.click()
-
         if not is_stubbed:
             print("Wait for 'show entries' dropdown to appear...")
             try:
@@ -88,12 +90,17 @@ def generate_top100_v2(min_year: str, max_year: str, environment: Environment) -
                 )
             except RuntimeError:
                 driver.quit()
+                return
             print("Select show 'All' entries")
-            element = driver.find_element(
-                By.XPATH,
-                "//div[@id='DataTables_Table_0_length']//select[@name='DataTables_Table_0_length']/option[@value='-1']"
-            )
-            element.click()
+            try:
+                element = driver.find_element(
+                    By.XPATH,
+                    "//div[@id='DataTables_Table_0_length']//select[@name='DataTables_Table_0_length']/option[@value='-1']"
+                )
+                element.click()
+            except RuntimeError:
+                driver.quit()
+                return
             print('Wait for table to refresh after asking all data...')
             try:
                 WebDriverWait(driver, 10, 2).until(
@@ -118,18 +125,21 @@ def generate_top100_v2(min_year: str, max_year: str, environment: Environment) -
             player_name = row_top100['first_name'] + ' ' + row_top100['last_name']
             player_season = row_top100['season']
             print("# Player : " + player_name + " (season : " + player_season + ")")
+            if player_name in FIXED_PLAYERS:
+                player_name = FIXED_PLAYERS[player_name]
             season_by_player_name = rows_bbindex[player_name][player_season]
             for column, value in season_by_player_name.items():
                 if column not in COLUMNS_BBINDEX:
                     continue
-                column_updated = column.lower().replace(' ', '_')
+                column_updated = column.lower().replace(' ', '_').replace('-', '_')
                 row_top100[column_updated] = value
             rows_top100_with_bbindex.append(row_top100)
-    generate_csv_from_list_dicts(rows_top100_with_bbindex, BBINDEX_DATA_DIRECTORY, output_file, 'w')
+    generate_csv_from_list_dicts(rows_top100_with_bbindex, TOP100_DATA_DIRECTORY, output_file, 'w')
     if not os.path.exists(output_file):
         print("Complete players data with bbindex failed")
     else:
         print("Complete players data with bbindex successful")
+    driver.quit()
 
 
 def build_player_name(player: str):

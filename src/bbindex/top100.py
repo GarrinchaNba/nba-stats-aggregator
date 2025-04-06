@@ -2,10 +2,6 @@ import sys
 
 from config.config import Environment, get_environment
 from src.bbindex.top100_processor_v2 import generate_top100_v2
-from src.common.utils import remove_accents
-
-print(remove_accents('Jonas Valančiūnas'))
-
 
 if len(sys.argv) < 2 or not sys.argv[1].isnumeric():
     raise Exception("Missing or invalid year")

@@ -18,6 +18,7 @@ from src.common.stub import get_stub_soup, get_stub_file
 from src.common.utils import get_all_seasons_between, get_shortened_season_name
 
 
+# FIXME : deprecated because the page (https://www.bball-index.com/lebron-database) does not contain data anymore, to delete if permanent
 def generate_top100(min_year: str, max_year: str, environment: Environment) -> None:
     is_stubbed = get_is_stubbed(environment)
     seasons = get_all_seasons_between(int(min_year), int(max_year), '-')
@@ -56,7 +57,6 @@ def generate_top100(min_year: str, max_year: str, environment: Environment) -> N
             driver.quit()
         element = driver.find_element(By.XPATH, "//*[@class='column-season']//input")
         element.send_keys(get_shortened_season_name(season, '-'))
-        # wait_random_duration(Duration.SHORT)
         print("Wait for 'show entries' select to appear...")
         try:
             WebDriverWait(driver, 10, 2).until(
@@ -111,6 +111,8 @@ def generate_top100(min_year: str, max_year: str, environment: Environment) -> N
             player_name = row_top100['first_name'] + ' ' + row_top100['last_name']
             player_season = row_top100['season']
             print("# Player : " + player_name + " (season : " + player_season + ")")
+            if player_name in FIXED_PLAYERS:
+                player_name = FIXED_PLAYERS[player_name]
             season_by_player_name = rows_bbindex[player_name][player_season]
             for column, value in season_by_player_name.items():
                 if column not in COLUMNS_BBINDEX:
