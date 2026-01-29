@@ -23,7 +23,7 @@ def get_season_from_year(season: int, delimiter='-') -> str:
 
 def get_current_season_year() -> int:
     year = date.today().year
-    if date.today().month > 7:
+    if date.today().month > 9:
         return year + 1
     else:
         return year

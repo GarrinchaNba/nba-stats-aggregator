@@ -12,28 +12,28 @@ from dateutil.relativedelta import relativedelta
 
 from config.config import Environment, get_is_stubbed
 from src.common.constant import BASKETLAB_FILE_BASE, BASKETLAB_COMPLETE_FILE_BASE, TOP100_DATA_DIRECTORY, \
-    BASKETBALL_REFERENCE_URL
-from src.common.data_collector import get_content_from_soup, get_soup, get_url_response, get_soup_from_response
+    BASKETBALL_REFERENCE_URL, TOP100_FILE, COMMON_DATA_DIRECTORY
+from src.common.data_collector import get_content_from_soup, get_url_response, get_soup_from_response
 from src.common.data_collector import get_table_body
 from src.common.file_processor import generate_csv_from_dataframe, build_top100_csv_file_name, \
-    generate_csv_from_list_dicts
+    generate_csv_from_list_dicts, build_file_name
+from src.common.stub import get_stub_soup
 from src.common.utils import remove_accents, wait_random_duration, Duration, matrix_to_list
 
 BATCH_SIZE = 10
 
 MAX_TRIES_PLAYER_SEARCH = 7
-MAX_BIRTHDATE = datetime.now() - relativedelta(years=45)
 PLAYER_NAME_FIX = {
     'capela': 'ca',
     'ntilikina': 'la'
 }
-LIST_TABLE_IDS = ['advanced', 'adj_shooting', 'per_poss', 'per_game', 'pbp', 'per_minute', 'totals']
-LIST_TABLE_IDS_PLAYOFFS = ['advanced', 'per_poss', 'per_game', 'pbp', 'per_minute', 'totals']
+LIST_TABLE_IDS = ['advanced', 'adj_shooting', 'per_poss', 'per_game_stats', 'pbp_stats', 'per_minute_stats', 'totals_stats']
+LIST_TABLE_IDS_PLAYOFFS = ['advanced', 'per_poss', 'per_game_stats', 'pbp_stats', 'per_minute_stats', 'totals_stats']
 OUTPUT_COLUMNS = ['last_name', 'first_name', 'player_id', 'season']
 
 
 def generate_top100(min_year: str, max_year: str, environment: Environment):
-    input_file: str = build_top100_csv_file_name(BASKETLAB_FILE_BASE, min_year, max_year)
+    input_file: str = build_file_name(COMMON_DATA_DIRECTORY, TOP100_FILE, BASKETLAB_FILE_BASE, '.csv', min_year, max_year)
     if not os.path.exists(input_file):
         raise Exception('Missing input file', input_file)
 
@@ -54,7 +54,7 @@ def generate_top100(min_year: str, max_year: str, environment: Environment):
                 print("##### Player already exported : " + first_name + ' ' + last_name)
                 exported_players.append(player)
                 continue
-            player_data, soup = search_player(first_name, last_name)
+            player_data, soup = search_player(first_name, last_name, max_year, is_stubbed)
             player |= player_data
             if not soup:
                 print("!!!!! Unknown player : " + first_name + ' ' + last_name)
@@ -72,18 +72,23 @@ def generate_top100(min_year: str, max_year: str, environment: Environment):
                 for table_id in LIST_TABLE_IDS:
                     regular_season_table = get_content_from_soup(soup, 'div_' + table_id)
                     if table_id not in all_columns:
-                        regular_columns = get_columns(regular_season_table, table_id)
+                        regular_columns = get_columns(regular_season_table, table_id, str(year))
+                        if len(regular_columns) == 1:
+                            skipped_reason = build_players_data(regular_season_table, regular_columns, table_id, year)
+                            print("Skip season " + season + " : " + skipped_reason[0])
+                            player_season_data = []
+                            break
                         all_columns[table_id] = regular_columns
                     regular_data = build_players_data(regular_season_table, all_columns[table_id], table_id, year)
                     player_season_data += regular_data
                     if table_id not in LIST_TABLE_IDS_PLAYOFFS:
                         continue
-                    if 'playoffs_' + table_id not in all_columns:
-                        playoff_columns = ['playoffs_' + column for column in all_columns[table_id]]
-                        all_columns['playoffs_' + table_id] = playoff_columns
-                    playoffs_table = get_content_from_soup(soup, 'div_playoffs_' + table_id)
-                    playoffs_data = build_players_data(playoffs_table, all_columns['playoffs_' + table_id],
-                                                       'playoffs_' + table_id, year)
+                    if table_id + '_post' not in all_columns:
+                        playoff_columns = [column + '_post' for column in all_columns[table_id]]
+                        all_columns[table_id + '_post'] = playoff_columns
+                    playoffs_table = get_content_from_soup(soup, 'div_' + table_id + '_post')
+                    playoffs_data = build_players_data(playoffs_table, all_columns[table_id+ '_post'],
+                                                       table_id, year, True)
                     player_season_data += playoffs_data
                 player_seasons_data.append(base_data + player_season_data)
 
@@ -97,7 +102,8 @@ def generate_top100(min_year: str, max_year: str, environment: Environment):
             }
             exported_players.append(player)
             if count % BATCH_SIZE == 0:
-                player_seasons_data_batch = player_seasons_data[-BATCH_SIZE:]
+                last_players = [exported_player['player_id'] for exported_player in exported_players[-BATCH_SIZE:]]
+                player_seasons_data_batch = [player_season_data for player_season_data in player_seasons_data if player_season_data[2] in last_players]
                 columns_dataframe = OUTPUT_COLUMNS + matrix_to_list(list(all_columns.values()))
                 player_seasons_dataframe = pd.DataFrame(player_seasons_data_batch, columns=columns_dataframe)
                 if count == BATCH_SIZE and not os.path.exists(output_file):
@@ -109,7 +115,9 @@ def generate_top100(min_year: str, max_year: str, environment: Environment):
             count += 1
             wait_random_duration(Duration.MEDIUM)
         LAST_BATCH_SIZE = (count - 1) % BATCH_SIZE
-        player_seasons_data_batch = player_seasons_data[-LAST_BATCH_SIZE:]
+        last_players = [exported_player['player_id'] for exported_player in exported_players[-LAST_BATCH_SIZE:]]
+        player_seasons_data_batch = [player_season_data for player_season_data in player_seasons_data if
+                                     player_season_data[2] in last_players]
         columns_dataframe = OUTPUT_COLUMNS + matrix_to_list(list(all_columns.values()))
         player_seasons_dataframe = pd.DataFrame(player_seasons_data_batch, columns=columns_dataframe)
         if count < BATCH_SIZE and not os.path.exists(output_file):
@@ -125,7 +133,7 @@ def generate_top100(min_year: str, max_year: str, environment: Environment):
             print("Export player data successful")
 
 
-def search_player(first_name, last_name) -> tuple[dict[str, str | Any], BeautifulSoup] | None:
+def search_player(first_name: str, last_name: str, year: str, is_stubbed: bool) -> tuple[dict[str, str | Any], BeautifulSoup] | None:
     count = 1
     base_url = BASKETBALL_REFERENCE_URL + '/players'
     while count < MAX_TRIES_PLAYER_SEARCH:
@@ -135,14 +143,18 @@ def search_player(first_name, last_name) -> tuple[dict[str, str | Any], Beautifu
             response = get_url_response(url)
             soup_info = get_soup_from_response(response, True)
             info = get_content_from_soup(soup_info, 'info', 'div')
-            soup = get_soup_from_response(response, False)
+            if is_stubbed:
+                soup = get_stub_soup('stub_bbref_player')
+            else:
+                soup = get_soup_from_response(response, False)
             full_name_raw = info.find('h1').findChild('span').text
             full_name = remove_accents(full_name_raw, 'NFKD')
             birthdate_raw = info.find('span', {'id': 'necro-birth'})
             if birthdate_raw is not None:
                 birthdate_raw = birthdate_raw.attrs['data-birth']
                 birthdate = datetime.strptime(birthdate_raw, '%Y-%m-%d')
-                if (full_name == first_name + ' ' + last_name) and birthdate > MAX_BIRTHDATE:
+                max_birthday = datetime(int(year), 1, 1) - relativedelta(years=45)
+                if (full_name == first_name + ' ' + last_name) and birthdate > max_birthday:
                     player_data = {
                         'player_id': player_id
                     }
@@ -156,15 +168,22 @@ def search_player(first_name, last_name) -> tuple[dict[str, str | Any], Beautifu
     return None
 
 
-def build_players_data(table: Tag, columns: list[str], table_id: str, year: int) -> list[str]:
+def build_players_data(table: Tag, columns: list[str], table_id: str, year: int, playoffs = False) -> list[str]:
     data_season = []
     row = None
     if table:
-        row = table.find('tr', {'id': table_id + '.' + str(year), 'class': 'full_table'})
+        if playoffs:
+            id = table_id + '_post' + '.' + str(year)
+        else:
+            id = table_id + '.' + str(year)
+        row = table.find('tr', {'id': id})
     for column in columns:
         value = '0'
         if row:
-            cell = row.find("td", {'data-stat': column.replace(table_id + '_', '')})
+            data_stat = column.replace(table_id + '_', '')
+            if playoffs:
+                data_stat = data_stat.replace('_post', '')
+            cell = row.find("td", {'data-stat': data_stat})
             if cell:
                 value = cell.text.strip()
         data_season.append(value)
@@ -172,7 +191,7 @@ def build_players_data(table: Tag, columns: list[str], table_id: str, year: int)
 
 
 def get_years(soup: BeautifulSoup, min_year: str, max_year: str) -> list[int]:
-    table = get_table_body(soup, 'div_per_game')
+    table = get_table_body(soup, 'div_per_game_stats')
     years = []
     rows = table.find_all('tr')
     for row in rows:
@@ -186,9 +205,9 @@ def get_years(soup: BeautifulSoup, min_year: str, max_year: str) -> list[int]:
     return years
 
 
-def get_columns(table: Tag, table_id= '') -> list[str]:
+def get_columns(table: Tag, table_id, year: str) -> list[str]:
     columns = []
-    row = table.find('tr', {'class': 'full_table'})
+    row = table.find('tr', {'id': table_id + '.' + year})
     cells = row.findAll("td")
     for cell in cells:
         data_stat = cell.attrs['data-stat']

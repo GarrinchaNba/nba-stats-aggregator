@@ -65,11 +65,18 @@ def generate_top100(min_year: str, max_year: str, environment: Environment):
                 if player_name not in rows_spotrac:
                     print('Player not found : ' + player_name)
                     continue
-                season_by_player_name = rows_spotrac[player_name][player_season]
-                for column, value in season_by_player_name.items():
-                    if column not in COLUMNS_SPOTRAC:
-                        continue
-                    column_updated = column.lower().replace(' ', '_').replace('-', '_')
-                    row_top100[column_updated] = value
+                if player_season not in rows_spotrac[player_name]:
+                    print(f"  No data found for player [{player_name}] for season [{player_season}], zero padding.")
+                    # Zero padding for missing data
+                    for column in COLUMNS_SPOTRAC:
+                        column_updated = column.lower().replace(' ', '_').replace('-', '_')
+                        row_top100[column_updated] = '0'
+                else:
+                    season_by_player_name = rows_spotrac[player_name][player_season]
+                    for column, value in season_by_player_name.items():
+                        if column not in COLUMNS_SPOTRAC:
+                            continue
+                        column_updated = column.lower().replace(' ', '_').replace('-', '_')
+                        row_top100[column_updated] = value
                 rows_top100_with_spotrac.append(row_top100)
     generate_csv_from_list_dicts(rows_top100_with_spotrac, TOP100_DATA_DIRECTORY, output_file, 'w')

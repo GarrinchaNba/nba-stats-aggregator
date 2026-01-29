@@ -1,11 +1,36 @@
 #!/bin/bash
 
-PYTHON3=$(which python3)
-$PYTHON3 -m venv venv
-source ./venv/bin/activate
-echo 'Install dependencies...'
-./venv/bin/pip install -r requirements.txt 1>/dev/null
-echo '...ok'
+PYTHON3=$(command -v python3)
+VENV_DIR="./.venv"
+REQ_FILE="requirements.txt"
+REQ_HASH_FILE="$VENV_DIR/.requirements.hash"
+
+# Create venv only if it doesn't exist
+echo "VENV_DIR : $VENV_DIR"
+if [ ! -d "$VENV_DIR" ]; then
+    echo 'Create venv dir : $VENV_DIR'
+    $PYTHON3 -m venv "$VENV_DIR"
+fi
+
+source "$VENV_DIR/bin/activate"
+
+# Calculate current requirements hash
+CUR_HASH=$(md5sum "$REQ_FILE" | awk '{print $1}')
+
+# Check if requirements need to be installed
+if [ ! -f "$REQ_HASH_FILE" ] || [ "$CUR_HASH" != "$(cat $REQ_HASH_FILE)" ]; then
+  echo 'Install dependencies...'
+    "$VENV_DIR/bin/pip" install -r "$REQ_FILE" --verbose 2>&1
+    if [ $? -eq 0 ]; then
+        echo "$CUR_HASH" > "$REQ_HASH_FILE"
+        echo '...ok'
+    else
+        echo 'Dependency installation failed. Please check errors above.'
+        exit 1
+    fi
+else
+    echo 'Dependencies already installed.'
+fi
 
 ROOT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 export PYTHONPATH=${PYTHONPATH}:${ROOT_DIR}/src/common/${ROOT_DIR}/config

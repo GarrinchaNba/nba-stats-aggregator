@@ -17,7 +17,15 @@ from src.common.file_processor import generate_csv_from_list_dicts, build_top100
 from src.common.stub import get_stub_soup, get_stub_file
 from src.common.utils import get_all_seasons_between, get_year_from_season, \
     wait_random_duration, Duration, get_current_season_year, remove_accents
+import shutil, time
+from selenium.common.exceptions import WebDriverException
 
+
+SLIDER_MIN_YEAR = 2010
+SLIDER_MAX_YEAR = get_current_season_year()
+SLIDER_LEFT_KNOB_YEAR = SLIDER_MAX_YEAR - 11
+SLIDER_RIGHT_KNOB_YEAR = SLIDER_MAX_YEAR
+INTERVALS = SLIDER_MAX_YEAR - SLIDER_MIN_YEAR - 4 # 4 seems to be an arbitrary valid value for now
 
 def generate_top100_v2(min_year: str, max_year: str, environment: Environment) -> None:
     is_stubbed = get_is_stubbed(environment)
@@ -32,89 +40,124 @@ def generate_top100_v2(min_year: str, max_year: str, environment: Environment) -
     COLUMNS_BBINDEX = ['Offensive Archetype', 'Defensive Role', 'LEBRON WAR', 'LEBRON', 'O-LEBRON', 'D-LEBRON']
     FIXED_PLAYERS: dict[str, str] = {
         "robert williams": "robert williams iii",
-        "jakob poeltl": "jakob poltl"
+        # "jakob poeltl": "jakob poltl"
     }
     soup_by_season: dict[str, BeautifulSoup] = {}
 
-    print("Access LEBRON database page...")
     options = webdriver.FirefoxOptions()
     options.add_argument('--ignore-certificate-errors')
     options.add_argument('--incognito')
     options.add_argument('--headless')
-    driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()), options=options)
-    if not is_stubbed:
-        driver.get('https://bball-index.shinyapps.io/Lebron/')
-    else:
-        driver.get('file://' + get_stub_file('stub_bbindex_players_short'))
-
+    # Use pre-installed geckodriver if available, fallback to webdriver_manager
+    geckodriver_path = os.environ.get('GECKODRIVER_PATH') or shutil.which('geckodriver')
     for season in seasons:
-        print("Filter for season [" + season + "]")
+        print("Load web driver for Firefox...")
+        driver = None
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                if geckodriver_path:
+                    service = Service(executable_path=geckodriver_path)
+                    driver = webdriver.Firefox(service=service, options=options)
+                else:
+                    driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()), options=options)
+                break
+            except WebDriverException as e:
+                print(f"WebDriver initialization failed (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(5)
+                else:
+                    raise RuntimeError("Failed to initialize Firefox WebDriver after multiple attempts.")
         try:
-            WebDriverWait(driver, 20, 3).until(
-                expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#Years-label"))
-            )
-        except RuntimeError:
-            driver.quit()
-            return
-        season_year = int(get_year_from_season(season, '-'))
-
-        slider = driver.find_element(By.XPATH,
-                                     "//label[@id='Years-label']/following-sibling::span//span[@class='irs-bar']")
-        move = webdriver.ActionChains(driver)
-        knob_left = driver.find_element(By.XPATH,
-                                        "//label[@id='Years-label']/following-sibling::span/span[contains(@class, 'irs-handle from')]")
-        initial_year = get_current_season_year() - 11
-        offset = (slider.size['width'] / 10) * (season_year - initial_year)
-        move.click_and_hold(knob_left).move_by_offset(offset, 0).release().perform()
-        knob_right = driver.find_element(By.XPATH,
-                                         "//label[@id='Years-label']/following-sibling::span/span[contains(@class, 'irs-handle to')]")
-        initial_year = get_current_season_year() - 1
-        offset = (slider.size['width'] / 10) * (initial_year - season_year)
-        move.click_and_hold(knob_right).move_by_offset(offset, 0).release().perform()
-        wait_random_duration(Duration.SHORT)
-        print("Click on 'Run query'...")
-        try:
-            WebDriverWait(driver, 10, 2).until(
-                expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#make_table"))
-            )
-        except RuntimeError:
-            driver.quit()
-            return
-        element = driver.find_element(By.CSS_SELECTOR, "#make_table")
-        element.click()
-        if not is_stubbed:
-            print("Wait for 'show entries' dropdown to appear...")
+            print("Access LEBRON database page...")
+            if not is_stubbed:
+                driver.get('https://bball-index.shinyapps.io/Lebron/')
+            else:
+                driver.get('file://' + get_stub_file('stub_bbindex_players_short'))
+            print("Filter for season [" + season + "]")
+            try:
+                WebDriverWait(driver, 20, 3).until(
+                    expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#Years-label"))
+                )
+            except RuntimeError:
+                print('Error while waiting for filter')
+                return
+            season_year = int(get_year_from_season(season, '-'))
+            slider = driver.find_element(By.XPATH,
+                                         "//label[@id='Years-label']/following-sibling::span//span[@class='irs-bar']")
+            move = webdriver.ActionChains(driver)
+            knob_left = driver.find_element(By.XPATH,
+                                            "//label[@id='Years-label']/following-sibling::span/span[contains(@class, 'irs-handle from')]")
+            left_before = knob_left.location['x']
+            print('Position left knob before move : ' + str(left_before))
+            slider_width = slider.size['width']
+            offset = (slider_width / INTERVALS) * (season_year - SLIDER_LEFT_KNOB_YEAR)
+            move.click_and_hold(knob_left).move_by_offset(offset, 0).release().perform()
+            knob_left = driver.find_element(By.XPATH,
+                                            "//label[@id='Years-label']/following-sibling::span/span[contains(@class, 'irs-handle from')]")
+            left_after = knob_left.location['x']
+            print('Position left knob after move : ' + str(left_after))
+            knob_right = driver.find_element(By.XPATH,
+                                             "//label[@id='Years-label']/following-sibling::span/span[contains(@class, 'irs-handle to')]")
+            right_before = knob_right.location['x']
+            print('Position right knob before move : ' + str(right_before))
+            offset = (slider_width / INTERVALS) * (season_year - SLIDER_RIGHT_KNOB_YEAR)
+            move.click_and_hold(knob_right).move_by_offset(offset, 0).release().perform()
+            knob_right = driver.find_element(By.XPATH,
+                                             "//label[@id='Years-label']/following-sibling::span/span[contains(@class, 'irs-handle to')]")
+            right_after = knob_right.location['x']
+            print('Position right knob after move : ' + str(right_after))
+            wait_random_duration(Duration.SHORT)
+            print("Click on 'Run query'...")
             try:
                 WebDriverWait(driver, 10, 2).until(
-                    expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#DataTables_Table_0_length"))
+                    expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#make_table"))
                 )
             except RuntimeError:
-                driver.quit()
+                print('Error while running query')
                 return
-            print("Select show 'All' entries")
-            try:
-                element = driver.find_element(
-                    By.XPATH,
-                    "//div[@id='DataTables_Table_0_length']//select[@name='DataTables_Table_0_length']/option[@value='-1']"
-                )
-                element.click()
-            except RuntimeError:
-                driver.quit()
-                return
-            print('Wait for table to refresh after asking all data...')
-            try:
-                WebDriverWait(driver, 10, 2).until(
-                    expected_conditions.presence_of_element_located(
-                        (By.XPATH, "//table[@id='DataTables_Table_0']/tbody/tr[26]"))
-                )
-            except RuntimeError:
-                driver.quit()
-            print('Get page content...')
-            page_source = driver.page_source
-            soup = get_soup_from_html_content(page_source)
-            soup_by_season[season] = soup
-        else:
-            soup_by_season[season] = get_stub_soup('stub_bbindex_players')
+            element = driver.find_element(By.CSS_SELECTOR, "#make_table")
+            element.click()
+            if not is_stubbed:
+                print("Wait for 'show entries' dropdown to appear...")
+                try:
+                    WebDriverWait(driver, 10, 2).until(
+                        expected_conditions.presence_of_element_located((By.CSS_SELECTOR, "#DataTables_Table_0_length"))
+                    )
+                except RuntimeError:
+                    print('Error while waiting "show entries" dropdown')
+                    return
+                print("Select show 'All' entries")
+                try:
+                    element = driver.find_element(
+                        By.XPATH,
+                        "//div[@id='DataTables_Table_0_length']//select[@name='DataTables_Table_0_length']/option[@value='-1']"
+                    )
+                    element.click()
+                except RuntimeError:
+                    print('Error while waiting for table to refresh.')
+                    return
+                print('Wait for table to refresh after asking all data...')
+                try:
+                    WebDriverWait(driver, 10, 2).until(
+                        expected_conditions.presence_of_element_located(
+                            (By.XPATH, "//table[@id='DataTables_Table_0']/tbody/tr[26]"))
+                    )
+                except RuntimeError:
+                    print('Error while waiting for table to refresh.')
+                    return
+                print('Get page content...')
+                page_source = driver.page_source
+                soup = get_soup_from_html_content(page_source)
+                soup_by_season[season] = soup
+            else:
+                soup_by_season[season] = get_stub_soup('stub_bbindex_players')
+        finally:
+            if driver is not None:
+                try:
+                    driver.quit()
+                except Exception as e:
+                    print(f"Warning: error quitting driver: {e}")
     print('Extract rows...')
     rows_bbindex = build_seasons_player_data(soup_by_season, 'DataTables_Table_0')
 
@@ -127,19 +170,28 @@ def generate_top100_v2(min_year: str, max_year: str, environment: Environment) -
             print("# Player : " + player_name + " (season : " + player_season + ")")
             if player_name in FIXED_PLAYERS:
                 player_name = FIXED_PLAYERS[player_name]
-            season_by_player_name = rows_bbindex[player_name][player_season]
-            for column, value in season_by_player_name.items():
-                if column not in COLUMNS_BBINDEX:
-                    continue
-                column_updated = column.lower().replace(' ', '_').replace('-', '_')
-                row_top100[column_updated] = value
+            if player_season not in rows_bbindex[player_name]:
+                print(f"  No data found for player [{player_name}] for season [{player_season}], zero padding.")
+                # Zero padding for missing data
+                for column in COLUMNS_BBINDEX:
+                    column_updated = column.lower().replace(' ', '_').replace('-', '_')
+                    row_top100[column_updated] = '0'
+            else:
+                season_by_player_name = rows_bbindex[player_name][player_season]
+                for column, value in season_by_player_name.items():
+                    if column not in COLUMNS_BBINDEX:
+                        continue
+                    column_updated = column.lower().replace(' ', '_').replace('-', '_')
+                    row_top100[column_updated] = value
+                season_year = get_year_from_season(player_season, '-')
+                if int(season_year) < 2014:
+                    row_top100['defensive_role'] = 'N/A'
             rows_top100_with_bbindex.append(row_top100)
     generate_csv_from_list_dicts(rows_top100_with_bbindex, TOP100_DATA_DIRECTORY, output_file, 'w')
     if not os.path.exists(output_file):
         print("Complete players data with bbindex failed")
     else:
         print("Complete players data with bbindex successful")
-    driver.quit()
 
 
 def build_player_name(player: str):
