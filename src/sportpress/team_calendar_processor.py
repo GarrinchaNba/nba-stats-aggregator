@@ -12,7 +12,9 @@ def generate_sportpress_calendars(team_prefix: str, year: str, environment=Envir
     print("Generate sportpress calendar for team [" + team_prefix.upper() + "] from year [" + year + "]")
     teams_mapping = get_teams_mapping('prefix_1', 'name')
     seasons = get_all_seasons_since(int(year))
+    print('Seasons to process : ' + str(seasons))
     for season in seasons:
+        print("Generate sportpress calendar for season [" + season + "]")
         generate_sportpress_calendar_for_season(season, team_prefix, environment, teams_mapping)
     print("All sportpress calendars generated !")
 
@@ -41,7 +43,7 @@ def generate_sportpress_calendar_for_season(season: str, team_prefix: str, envir
             away = input_row['Opponent']
             arena = arena_mapping[teams_mapping[team_prefix]]
         date = datetime.strptime(input_row['Date'], '%a, %b %d, %Y').date()
-        time = datetime.strptime(input_row['Start (ET)'].replace('p', 'PM'), '%I:%M%p').time()
+        time = datetime.strptime(input_row['Start (ET)'].replace('a', 'AM').replace('p', 'PM'), '%I:%M%p').time()
         calendar_data.append({
             'Date': date.strftime('%Y/%m/%d'),
             'Time': time.strftime('%H:%M:%S'),

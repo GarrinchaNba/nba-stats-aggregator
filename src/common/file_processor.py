@@ -11,20 +11,25 @@ from src.common.constant import NBA_TEAMS_FILE, COUNTRIES_FILE, NBA_ARENA_FILE, 
 from src.common.utils import build_years
 
 
-def get_mapping(file: str, output_key: str) -> dict[str, dict[str, str]]:
+def get_mapping(file: str, output_key: str, delimiter: str = ',') -> dict[str, dict[str, str]]:
     data: dict[str, dict[str, str]] = {}
-    with open(file, newline='') as teams_file_csv:
-        rows: list[dict[str, str]] = list(csv.DictReader(teams_file_csv, delimiter=','))
+    with open(file, newline='', encoding='utf-8') as teams_file_csv:
+        rows: list[dict[str, str]] = list(csv.DictReader(teams_file_csv, delimiter=delimiter))
+        print('Read rows from file [' + file + ']')
         for row in rows:
+            # print('Processing row: ' + str(row))
             if output_key not in row:
                 raise Exception('Unknown column name in file [' + file + '] : ' + output_key)
             data[row[output_key]] = row
     return data
 
 
-def get_mapping_for_output_column(file: str, output_key: str, output_value: str) -> dict[str, str]:
+def get_mapping_for_output_column(file: str, output_key: str, output_value: str,
+                                   delimiter: str = ',') -> dict[str, str]:
     data: dict[str, str] = {}
-    rows = get_mapping(file, output_key)
+    print('Get mapping for output column [' + output_value + '] in file [' + file + ']')
+    rows = get_mapping(file, output_key, delimiter)
+    print('Mapping for output column [' + output_value + '] in file [' + file + ']')
     for key, row in rows.items():
         if output_key not in row:
             raise Exception('Unknown column name in file [' + file + '] : ' + output_value)
@@ -37,7 +42,7 @@ def get_teams_mapping(output_key: str, output_value: str) -> dict[str, str]:
 
 
 def get_countries_mapping(output_key: str, output_value: str) -> dict[str, str]:
-    return get_mapping_for_output_column(COUNTRIES_FILE, output_key, output_value)
+    return get_mapping_for_output_column(COUNTRIES_FILE, output_key, output_value, delimiter=';')
 
 
 def create_directory_if_not_exists(data_directory) -> None:

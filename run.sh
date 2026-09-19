@@ -77,6 +77,8 @@ elif [ $1 = 'ctg_game_logs' ]; then
     $PYTHON3 ${ROOT_DIR}/src/ctg/game_logs.py "${@:2}"
 elif [ $1 = 'ctg_transition' ]; then
     $PYTHON3 ${ROOT_DIR}/src/ctg/transitions.py "${@:2}"
+elif [ $1 = 'nbacom_photos' ]; then
+    $PYTHON3 ${ROOT_DIR}/src/nbacom/photos.py "${@:2}"
 else
     echo "Unknown script : $1"
     exit 1;

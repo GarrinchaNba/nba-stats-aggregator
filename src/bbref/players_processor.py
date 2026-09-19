@@ -24,6 +24,7 @@ POSITION_LABELS = {'G': 'Guard', 'PG': 'Guard', 'SG': 'Guard', 'F': 'Forward', '
 def generate_players(year: str, environment: Environment):
     print("Generate players from year [" + year + "]")
     seasons = get_all_seasons_since(int(year))
+    print('Seasons to process : ' + str(seasons))
     countries_mapping = get_countries_mapping('alpha-2', 'alpha-3')
     teams_mapping = get_teams_mapping('prefix_1', 'name')
     is_stubbed = get_is_stubbed(environment)
@@ -31,7 +32,7 @@ def generate_players(year: str, environment: Environment):
         print("Generate players for season [" + season + "]")
         data = []
         output_file: str = os.path.join(BBREF_DATA_DIRECTORY, 'all_nba_players_' + season + '.csv')
-        teams = get_csv_file_as_dict(NBA_TEAMS_FILE)
+        teams = get_csv_file_as_dict(NBA_TEAMS_FILE, delimiter=',')
         for team in teams:
             year = get_year_from_season(season)
             if not does_franchise_exists_for_season(team, int(year)):

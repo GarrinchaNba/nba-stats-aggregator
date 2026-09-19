@@ -2,13 +2,37 @@ import csv
 import os
 import sys
 
+from config.config import Environment, get_environment
 from src.common.constant import FIVETHIRTYEIGHT_DATA_DIRECTORY, BASKETLAB_COMPLETE_FILE_BASE, \
     BASKETLAB_WITH_RAPTORS_FILE
 from src.common.file_processor import generate_csv_from_list_dicts, build_top100_csv_file_name
 from src.common.utils import build_years
 
+USAGE_EXAMPLE = "Example: ./run.sh 538_top100 2021 [2022] [local|prod]"
+
+
+def fail(message: str):
+    print(f"Error: {message}")
+    print(USAGE_EXAMPLE)
+    raise SystemExit(1)
+
+
+if len(sys.argv) < 2 or not sys.argv[1].isnumeric():
+    fail("Missing or invalid year. Expected a numeric year as first argument.")
+
 min_year = sys.argv[1]
-max_year = sys.argv[2]
+max_year = min_year
+if len(sys.argv) >= 3:
+    if not sys.argv[2].isnumeric():
+        fail("Invalid max year. Expected a numeric year as second argument.")
+    max_year = sys.argv[2]
+
+if len(sys.argv) >= 4:
+    environment_raw = sys.argv[3].lower()
+    if environment_raw not in {item.value for item in Environment}:
+        fail("Invalid environment. Expected one of: local, prod.")
+    get_environment(environment_raw)
+
 name = build_years(min_year, max_year)
 
 if int(min_year) >= 2023:
