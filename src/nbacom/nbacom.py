@@ -67,10 +67,10 @@ def _extract_roster_from_next_data(soup: BeautifulSoup) -> list[dict]:
 
 def extract_photo(team_prefix: str, year: str, environment: Environment) -> None:
     is_stubbed = get_is_stubbed(environment)
-    team_name = get_teams_mapping('prefix_1', 'prefix_long_2')[team_prefix]
-    print("Extract photos for team [" + team_name + "] from year [" + year + "]")
+    team_url_slug = get_teams_mapping('prefix_1', 'prefix_long_2')[team_prefix]
+    print("Extract photos for team [" + team_url_slug + "] from year [" + year + "]")
     if not is_stubbed:
-        url = NBA_COM_URL + '/' + team_name + '/roster'
+        url = NBA_COM_URL + '/' + team_url_slug + '/roster'
         soup = get_soup(url)
     else:
         soup = get_stub_soup('stub_photo_roster_2')
@@ -84,20 +84,20 @@ def extract_photo(team_prefix: str, year: str, environment: Environment) -> None
     if not roster:
         roster = _extract_roster_from_next_data(soup)
     if not roster:
-        raise ValueError(f"No roster cards found for team [{team_name}] from page HTML structure")
+        raise ValueError(f"No roster cards found for team [{team_url_slug}] from page HTML structure")
 
     for player in roster:
         if isinstance(player, dict):
             player_id = player.get('id')
             if player_id is None:
-                raise ValueError(f"Missing player id in roster JSON for team [{team_name}]")
+                raise ValueError(f"Missing player id in roster JSON for team [{team_url_slug}]")
             first_name = player.get('firstName', '').strip()
             last_name = player.get('lastName', '').strip()
             image_url = f"{NBA_COM_IMAGES_URL}/headshots/nba/latest/1040x760/{player_id}.png"
         else:
             image_tag = player.select_one('img[alt*="headshot"]') or player.find('img')
             if image_tag is None:
-                raise ValueError(f"Missing player image in roster card for team [{team_name}]")
+                raise ValueError(f"Missing player image in roster card for team [{team_url_slug}]")
 
             image_url = image_tag.get('src') or image_tag.get('data-src')
             if image_url is None:
@@ -120,10 +120,10 @@ def extract_photo(team_prefix: str, year: str, environment: Environment) -> None
             if res.status_code != 200:
                 raise Exception('Image not found : ' + image_url)
             byte_array = res.raw
-            save_image(byte_array, first_name, last_name, team_name, year)
+            save_image(byte_array, first_name, last_name, team_prefix, year)
         else:
             with open(os.path.join(STUB_DATA_DIRECTORY, "stub_photo.png"), "rb") as byte_array:
-                save_image(byte_array, first_name, last_name, team_name, year)
+                save_image(byte_array, first_name, last_name, team_prefix, year)
         wait_random_duration()
 
 

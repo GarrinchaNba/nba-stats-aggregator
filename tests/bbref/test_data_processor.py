@@ -60,7 +60,7 @@ def test_should_append_ranking_fields_when_building_regular_season_rows() -> Non
 def test_should_not_append_ranking_fields_for_playoffs_when_rankings_are_empty() -> None:
     # Given
     soup = get_stub_soup("stub_bbref_game_logs")
-    table = soup.find("table", {"id": "tgl_basic_playoffs"})
+    table = soup.find("table", {"id": "tgl_basic"})
     assert table is not None
     columns = get_columns(table)
 

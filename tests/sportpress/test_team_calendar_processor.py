@@ -1,25 +1,65 @@
 from __future__ import annotations
 
 import csv
-import shutil
 from pathlib import Path
 
 import pytest
 
 from config.config import Environment
 from src.sportpress import team_calendar_processor
-from tests.conftest import PROJECT_ROOT
 
 
 @pytest.fixture
 def sportpress_calendar_files(tmp_path: Path) -> dict[str, Path]:
-    input_file = PROJECT_ROOT / "data" / "bbref" / "sas_calendar_2024_2025.csv"
-    expected_output_file = PROJECT_ROOT / "data" / "bbref" / "sas_calendar_2024_2025_sportpress.csv"
-    copied_input_file = tmp_path / input_file.name
-    shutil.copyfile(input_file, copied_input_file)
+    input_file = tmp_path / "sas_calendar_2024_2025.csv"
+    with input_file.open("w", encoding="utf-8", newline="") as csv_file:
+        writer = csv.DictWriter(
+            csv_file,
+            fieldnames=["Date", "Start (ET)", "Place", "Opponent"],
+            delimiter=";",
+        )
+        writer.writeheader()
+        writer.writerow(
+            {
+                "Date": "Thu, Oct 24, 2024",
+                "Start (ET)": "7:30p",
+                "Place": "@",
+                "Opponent": "Dallas Mavericks",
+            }
+        )
+        writer.writerow(
+            {
+                "Date": "Sat, Oct 26, 2024",
+                "Start (ET)": "8:30p",
+                "Place": "",
+                "Opponent": "Houston Rockets",
+            }
+        )
+    expected_output_file = tmp_path / "sas_calendar_2024_2025_sportpress_expected.csv"
+    with expected_output_file.open("w", encoding="utf-8", newline="") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=["Date", "Time", "Venue", "Home", "Away"], delimiter=",")
+        writer.writeheader()
+        writer.writerow(
+            {
+                "Date": "2024/10/24",
+                "Time": "19:30:00",
+                "Venue": "American Airlines Center",
+                "Home": "Dallas Mavericks",
+                "Away": "San Antonio Spurs",
+            }
+        )
+        writer.writerow(
+            {
+                "Date": "2024/10/26",
+                "Time": "20:30:00",
+                "Venue": "Frost Bank Center",
+                "Home": "San Antonio Spurs",
+                "Away": "Houston Rockets",
+            }
+        )
     return {
         "expected_output_file": expected_output_file,
-        "output_file": tmp_path / expected_output_file.name,
+        "output_file": tmp_path / "sas_calendar_2024_2025_sportpress.csv",
     }
 
 
@@ -31,7 +71,9 @@ def test_should_generate_expected_sportpress_calendar_when_source_calendar_exist
     monkeypatch.setattr(team_calendar_processor, "BBREF_DATA_DIRECTORY", str(sportpress_calendar_files["output_file"].parent))
 
     # When
-    team_calendar_processor.generate_sportpress_calendar_for_season("2024_2025", "sas", Environment.LOCAL)
+    team_calendar_processor.generate_sportpress_calendar_for_season(
+        "2024_2025", "sas", Environment.LOCAL, teams_mapping={"sas": "San Antonio Spurs"},
+    )
 
     # Then
     assert sportpress_calendar_files["output_file"].read_text(encoding="utf-8") == sportpress_calendar_files[
