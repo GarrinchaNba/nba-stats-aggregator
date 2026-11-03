@@ -8,9 +8,10 @@
 !/data/common/**
 !/data/stub
 !/data/stub/**
-src/top100/geckodriver.log
 src/bbindex/geckodriver.log
+src/top100/geckodriver.log
 venv/
+.venv/
 
 # python
 __pycache__
